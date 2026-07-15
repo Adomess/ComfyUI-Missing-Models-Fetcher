@@ -1,0 +1,5 @@
+{
+  "hf_api_key": "hf_xxx_read_token_here",
+  "civitai_api_key": "civitai_api_key_here",
+  "modelscope_api_token": "modelscope_access_token_here"
+}

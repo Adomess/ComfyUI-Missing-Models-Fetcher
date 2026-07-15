@@ -1,0 +1,19 @@
+[project]
+name = "missing-models-fetcher"
+description = "Scan ComfyUI workflows for missing model metadata and download models into registered model folders with resumable transfers."
+version = "0.1.0"
+license = { file = "LICENSE" }
+dependencies = ["certifi>=2024.7.4"]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/your-name/ComfyUI-Missing-Models-Fetcher"
+
+[tool.comfy]
+PublisherId = "your-publisher-id"
+DisplayName = "ComfyUI Missing Models Fetcher"
+Icon = ""

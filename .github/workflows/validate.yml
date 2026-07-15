@@ -1,0 +1,30 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Comfy CLI
+        run: python -m pip install --disable-pip-version-check comfy-cli
+      - name: Validate Registry metadata and source
+        run: |
+          python scripts/validate_release.py --allow-placeholders
+          comfy node validate
+          python -m py_compile __init__.py missing_models_fetcher/*.py tests/smoke_backend.py scripts/live_network_regression.py scripts/live_download_e2e.py
+          node --check web/js/missing_models_fetcher.js
+      - name: Verify Registry package can be built
+        run: comfy node pack

@@ -1,0 +1,74 @@
+name: Publish to ComfyUI Registry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-e2e:
+    name: Live provider download gate
+    runs-on: [self-hosted, Windows, X64, comfyui-mmf-e2e]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify dedicated ComfyUI runner
+        shell: pwsh
+        env:
+          COMFYUI_ROOT: C:\ComfyUI\ComfyUI
+          COMFYUI_PYTHON: C:\ComfyUI\python_embeded\python.exe
+          LOADED_PLUGIN: C:\ComfyUI\ComfyUI\custom_nodes\ComfyUI-Missing-Models-Fetcher
+        run: |
+          $ErrorActionPreference = "Stop"
+          foreach ($path in @($env:COMFYUI_ROOT, $env:COMFYUI_PYTHON, $env:LOADED_PLUGIN)) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Dedicated live-E2E runner path is missing: $path"
+            }
+          }
+          $workspace = (Resolve-Path -LiteralPath $env:GITHUB_WORKSPACE).Path.TrimEnd('\')
+          $loadedItem = Get-Item -LiteralPath $env:LOADED_PLUGIN -Force
+          if ($loadedItem.LinkType -and $loadedItem.Target) {
+            $target = [string]@($loadedItem.Target)[0]
+            if (-not [System.IO.Path]::IsPathRooted($target)) {
+              $target = Join-Path $loadedItem.Parent.FullName $target
+            }
+            $loaded = [System.IO.Path]::GetFullPath($target).TrimEnd('\')
+          } else {
+            $loaded = $loadedItem.FullName.TrimEnd('\')
+          }
+          if (-not $loaded.Equals($workspace, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "The running ComfyUI plugin must resolve to the checked-out workspace. Loaded=$loaded Workspace=$workspace"
+          }
+          $config = Invoke-RestMethod -Uri "http://127.0.0.1:8188/missing-models-fetcher/config" -TimeoutSec 10
+          if (-not $config.ok -or $config.config.proxy_mode -ne "off" -or $config.config.proxy_enabled) {
+            throw "The live-E2E runner must be healthy with the plugin proxy disabled."
+          }
+      - name: Validate source and smoke tests
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\validate.ps1 `
+            -ComfyUIRoot C:\ComfyUI\ComfyUI `
+            -Python C:\ComfyUI\python_embeded\python.exe `
+            -Node "C:\Program Files\nodejs\node.exe"
+      - name: Run isolated three-provider live download E2E
+        shell: pwsh
+        run: |
+          C:\ComfyUI\python_embeded\python.exe scripts\live_download_e2e.py `
+            --base-url http://127.0.0.1:8188 `
+            --restart-bat C:\ComfyUI\restart_comfyui.bat
+
+  publish:
+    needs: live-e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify release metadata
+        run: python scripts/validate_release.py
+      - name: Publish node
+        uses: Comfy-Org/publish-node-action@main
+        with:
+          personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN }}

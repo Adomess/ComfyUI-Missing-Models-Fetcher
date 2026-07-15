@@ -11,7 +11,7 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/your-name/ComfyUI-Missing-Models-Fetcher"
+Repository = "https://github.com/Adomess/ComfyUI-Missing-Models-Fetcher"
 
 [tool.comfy]
 PublisherId = "your-publisher-id"

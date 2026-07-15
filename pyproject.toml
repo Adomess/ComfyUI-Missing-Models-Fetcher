@@ -15,5 +15,5 @@ Repository = "https://github.com/Adomess/ComfyUI-Missing-Models-Fetcher"
 
 [tool.comfy]
 PublisherId = "messiah"
-DisplayName = "ComfyUI Missing Models Fetcher"
+DisplayName = "Missing Models Fetcher"
 Icon = ""
